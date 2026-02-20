@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <style>
+      #log {
+        padding: 10px;
+        height: 300px;
+        background: #ddd;
+        overflow-y: scroll;
+        border: 1px solid orange;
+      }
+      .status-on {
+        color: #00ff00;
+      }
+      .status-off {
+        color: #ff0000;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="status" class="status-off">Connecting...</div>
+    <form action="" id="message-form">
+      <input type="text" placeholder="Send Cargo" required id="message-input" />
+      <button type="submit">Send</button>
+    </form>
+    <h3>Live stream Log:</h3>
+    <pre id="log"></pre>
+
+    <script>
+      const statusEl = document.getElementById("status");
+      const inputEl = document.getElementById("message-input");
+      const logEl = document.getElementById("log");
+      const formEl = document.getElementById("message-form");
+
+      const appendLog = (label, message) => {
+        const entry = `${new Date().toLocaleTimeString()} ${label} ${message} \n`;
+        logEl.textContent = entry + logEl.textContent;
+      };
+
+      const socket = new WebSocket("ws://localhost:8080");
+
+      socket.addEventListener("open", () => {
+        statusEl.textContent = "Connected";
+        statusEl.className = "status-on";
+        appendLog("[SYSTEM]", "Tunnel Established");
+        console.log("Tunnel Established");
+      });
+
+      socket.addEventListener("close", () => {
+        statusEl.textContent = "Disconnected";
+        statusEl.className = "status-off";
+        appendLog("[SYSTEM]", "Tunnel Collapsed");
+      });
+
+      socket.addEventListener("message", (e) => {
+        appendLog("[RECEIVED]", e.data);
+      });
+
+      formEl.addEventListener("submit", (e) => {
+        e.preventDefault();
+        if (socket.readyState !== WebSocket.OPEN) {
+          appendLog("[Error]", "No active tunnel found");
+        }
+        const msg = inputEl.value.trim();
+        socket.send(msg);
+        appendLog("[SENT]", msg);
+        inputEl.value = "";
+      });
+    </script>
+  </body>
+</html>
